@@ -7,7 +7,7 @@ Like most of our deobfuscation tools, this repo is forked from [FabricMC](https:
 
 ## Files included in this repo
 - **mappings/<mcversion>.tiny**: Intermediary mappings in the Tiny mapping format.
-- **matches/*.matches**: Matches between YouTube versions, created by the ReVanced project with the aid of [Matcher](https://github.com/NebelNidas/Matcher).
+- **matches/*.match**: Matches between YouTube versions, created by the ReVanced project with the aid of [Matcher](https://github.com/NebelNidas/Matcher).
 
 
 ## Generating / updating mappings
