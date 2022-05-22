@@ -14,7 +14,7 @@ Like most of our deobfuscation tools, this repo is forked from [FabricMC](https:
 In general, you're going to want to use the following tools:
 
 - [Matcher](https://github.com/NebelNidas/Matcher) by sfPlayer1 (or our fork for a better decompiler) can be used to create a match file between two JARs. In addition, it can load Enigma-format mappings, which can be used as an aid in figuring out changes.
-- [Stitch](https://github.com/NebelNidas/stitch) is a toolset for generating mappings based on match files. "generateIntermediary" is used to start a fresh chain of intermediary mappings, while "updateIntermediary" is used to add a new entry to the chain based on the previous entry and a matches file.
+- [Stitch](https://github.com/NebelNidas/stitch) is a toolset for generating mappings based on match files. `generateIntermediary` is used to start a fresh chain of intermediary mappings, while `updateIntermediary` is used to add a new entry to the chain based on the previous entry and a matches file.
 
 
 ## License
