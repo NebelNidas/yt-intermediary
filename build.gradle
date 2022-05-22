@@ -1,0 +1,123 @@
+import cuchaz.enigma.command.ConvertMappingsCommand
+
+buildscript {
+	repositories {
+		maven {
+			name "Fabric Repository"
+			url 'https://maven.fabricmc.net'
+		}
+	}
+
+	dependencies {
+		classpath "cuchaz:enigma:0.14.2.138"
+	}
+}
+
+plugins {
+	id 'maven-publish'
+}
+
+static List<String> getPublishedVersions() {
+	// TODO: Switch to correct maven
+	def xml = new URL("https://maven.fabricmc.net/net/fabricmc/intermediary/maven-metadata.xml").text
+	def metadata = new XmlSlurper().parseText(xml)
+	def versions = metadata.versioning.versions.version*.text();
+	return versions
+}
+
+def publishedVersions = getPublishedVersions()
+
+def ENV = System.getenv()
+
+def published = false
+def localMappingsPath = "$buildDir/v2Mappings"
+new File(localMappingsPath).mkdirs()
+file('mappings').eachFile {
+	if (!it.name.endsWith(".tiny")) return
+
+	def ytVer = it.name.replace(".tiny", "")
+
+	if (publishedVersions.contains(ytVer) && !(ENV.FORCE_PUBLISH == ytVer)) {
+		project.logger.lifecycle("Skipping ${ytVer} as it has already been released")
+		return
+	} else {
+		project.logger.lifecycle("Building ${ytVer}")
+	}
+
+	published = true
+
+	File v1MappingFile = it
+	File v2MappingFile = new File("$localMappingsPath/${it.name}")
+
+	def conversionTask = "convert${it.name}ToV2"
+	tasks.register(conversionTask) {
+		group = "V2 Conversion"
+		inputs.file(v1MappingFile)
+		outputs.file(v2MappingFile)
+
+		doLast {
+			new ConvertMappingsCommand().run(
+					"tiny",
+					v1MappingFile.path,
+					"tinyv2:official:intermediary",
+					v2MappingFile.path
+			)
+		}
+	}
+
+	Jar makeV1Jar = makeJar(ytVer, v1MappingFile, false)
+	Jar makeV2Jar = makeJar(ytVer, v2MappingFile, true)
+
+
+	build.dependsOn makeV1Jar
+	build.dependsOn makeV2Jar
+
+	makeV2Jar.dependsOn conversionTask
+
+	publishing {
+		publications {
+			create("${ytVer.replace(" ", "")}_mavenJava", MavenPublication) {
+				groupId 'app.revanced'
+				artifactId "intermediary"
+				version ytVer
+				artifact(makeV1Jar.archiveFile) {
+					builtBy makeV1Jar
+				}
+				artifact(makeV2Jar.archiveFile) {
+					builtBy makeV2Jar
+					classifier = "v2"
+				}
+			}
+		}
+	}
+}
+
+if (!published) {
+	throw new RuntimeException("Nothing to publish, override with the FORCE_PUBLISH env")
+}
+
+def makeJar(String ytVersion, File mappings, boolean v2) {
+	def jarFilename = "intermediary-" + ytVersion + (v2 ? "-v2" : "")
+	return task("${ytVersion}_makeJar" + (v2 ? "v2" : ""), type: Jar) {
+		baseName jarFilename
+		from(file(mappings)) {
+			into "mappings"
+			rename mappings.name, "mappings.tiny"
+		}
+		destinationDirectory = file("build/jars")
+	}
+}
+
+publishing {
+	repositories {
+		if (ENV.MAVEN_URL) {
+			maven {
+				url ENV.MAVEN_URL
+				credentials {
+					username ENV.MAVEN_USERNAME
+					password ENV.MAVEN_PASSWORD
+				}
+			}
+		}
+	}
+}
